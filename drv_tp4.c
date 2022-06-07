@@ -12,6 +12,13 @@
 #include <linux/gpio.h>     
 #include <linux/interrupt.h>
 
+/*Funciones del driver y de las interrupciones*/ 
+static irqreturn_t gpio_irq_handler(int irq,void *dev_id);
+static int drv_tp4_open(struct inode *inode, struct file *file);
+static int drv_tp4_release(struct inode *inode, struct file *file);
+static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, loff_t * off);
+static ssize_t drv_tp4_write(struct file *filp, char __user *buf, size_t len, loff_t * off);
+
 
 
 /*Estructuras para el montado del modulo*/
@@ -19,18 +26,21 @@ dev_t dev_tp4;
 static struct class *class_tp4;
 static struct cdev cdev_tp4;
 
-/*Variables para configuracion de GPIO e interrupciones*/
-unsigned int GPIO_irqNumber;
-
 /*Estructura que indica a que funciones apuntaran los llamados al driver*/
 static struct file_operations fops =
 {
     .owner          = THIS_MODULE,
-    .read           = etx_read,
-    .write          = etx_write,
-    .open           = etx_open,
-    .release        = etx_release,
+    .read           = drv_tp4_read,
+    .write          = drv_tp4_write,
+    .open           = drv_tp4_open,
+    .release        = drv_tp4_release,
 };
+
+/*Variables para configuracion de GPIO e interrupciones*/
+unsigned int GPIO_irqNumber;
+
+/*Variables para lograr la funcionalidad del modulo*/
+unsigned int pulsaciones;
 
 /*Funcion de cargado del modulo, llamada cuando se utiliza el insmod*/
 static int __init drv_tp4_init(void)
@@ -91,7 +101,7 @@ static int __init drv_tp4_init(void)
     }
 
     //Obtenemos el valor de interrupcion para el puerto determinado
-    GPIO_irqNumber = gpio_to_irq(GPIO_20_IN);
+    GPIO_irqNumber = gpio_to_irq(GPIO_20);
     
     //Seteamos el handler de las interrupciones
     if (request_irq(GPIO_irqNumber,             //IRQ number
@@ -102,6 +112,9 @@ static int __init drv_tp4_init(void)
         printk(KERN_INFO "DRV_TP4: No se pudo setear el handler de IRQ.\n");
         goto r_gpio;
     }
+
+    //Iniciamos a 0 el numero de veces que se presiono el boton
+    pulsaciones = 0;
     
     printk(KERN_INFO "DRV_TP4: Modulo cargado correctamente.\n")
     return 0;
@@ -124,13 +137,15 @@ static int __init drv_tp4_init(void)
 /*Funcion de borrado del modulo, llamada cuando se utiliza el rmmod*/
 static void __exit drv_tp4_exit(void)
 {
-  free_irq(GPIO_irqNumber,NULL);
-  gpio_free(GPIO_20);
-  device_destroy(class_tp4,dev_tp4);
-  class_destroy(class_tp4);
-  cdev_del(&cdev_tp4);
-  unregister_chrdev_region(dev_tp4, 1);
-  pr_info("DRV_TP4: Modulo quitado correctamente.\n");
+        
+    free_irq(GPIO_irqNumber,NULL);
+    gpio_free(GPIO_20);
+    device_destroy(class_tp4,dev_tp4);
+    class_destroy(class_tp4);
+    cdev_del(&cdev_tp4);
+    unregister_chrdev_region(dev_tp4, 1);
+    pr_info("DRV_TP4: Modulo quitado correctamente.\n");
+
 }
 
 
@@ -141,3 +156,53 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("ASMKiller");
 MODULE_DESCRIPTION("Modulo resolucion del TP4 de SdC");
 MODULE_VERSION("1");
+
+
+
+
+static irqreturn_t gpio_irq_handler(int irq,void *dev_id){
+
+    printk(KERN_INFO "DRV_TP4: Recibi interrupcion.\n");
+
+    pulsaciones++;
+
+    return IRQ_HANDLED;
+
+}
+
+
+static int drv_tp4_open(struct inode *inode, struct file *file){
+
+    printk(KERN_INFO "DRV_TP4: Open.\n");
+    return 0;
+
+}
+
+static int drv_tp4_release(struct inode *inode, struct file *file){
+
+    printk(KERN_INFO "DRV_TP4: Close.\n");
+    return 0;
+
+}
+
+static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, loff_t * off){
+
+    printk(KERN_INFO "DRV_TP4: Read.\n");
+
+    if(copy_to_user(buf, &pulsaciones, len) > 0) {
+        printk(KERN_INFO "DRV_TP4: Error en copy to user.\n");
+    }
+
+    return 0;
+
+}
+
+static ssize_t drv_tp4_write(struct file *filp, char __user *buf, size_t len, loff_t * off){
+
+    printk(KERN_INFO "DRV_TP4: Write.\n");
+
+    pulsaciones = 0;
+
+    return 0;
+
+}
