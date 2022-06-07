@@ -1,0 +1,6 @@
+
+Puertos:
+
+20,21: ingreso de señal.
+
+23: switch de grafico.
