@@ -62,11 +62,12 @@ static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, lof
 
     printk(KERN_INFO "DRV_TP4: Read.\n");
 
-    if(copy_to_user(buf, &pulsaciones, 1)) {
-        printk(KERN_INFO "DRV_TP4: Error en copy to user.\n");
-        return -EFAULT;
+    if(*offset==0){
+        if(copy_to_user(buf, &pulsaciones, 1)) {
+            printk(KERN_INFO "DRV_TP4: Error en copy to user.\n");
+            return -EFAULT;
+        }
     }
-
     return 0;
 
 }
@@ -129,13 +130,9 @@ static int __init drv_tp4_init(void)
     }
 
     /*Pasos necesarios para reservar y configurar puertos GPIO, asi como sus interrupciones*/
-  
-    int a = gpio_request_array(botones, ARRAY_SIZE(botones));
-
-    printk(KERN_INFO "%d\n", a);
     
     //Solicitamos el puerto GPIO
-    if(a){
+    if(gpio_request_array(botones, ARRAY_SIZE(botones))){
         printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO %d.\n", N_BOTON);
         goto r_gpio;
     }
