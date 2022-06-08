@@ -62,8 +62,9 @@ static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, lof
 
     printk(KERN_INFO "DRV_TP4: Read.\n");
 
-    if(copy_to_user(buf, &pulsaciones, len) > 0) {
+    if(copy_to_user(buf, &pulsaciones, 1) > 0) {
         printk(KERN_INFO "DRV_TP4: Error en copy to user.\n");
+        return -EFAULT;
     }
 
     return 0;
