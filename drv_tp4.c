@@ -30,7 +30,6 @@ uint8_t pulsaciones;
 /* Define GPIOs for BUTTONS */
 static struct gpio botones[] = {
 		{ N_BOTON, GPIOF_IN, "BUTTON 1" },
-        { N_BOTON+1, GPIOF_IN, "BUTTON 2" },
 };
 
 /*Funciones del driver y de las interrupciones*/ 
@@ -63,11 +62,11 @@ static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, lof
     printk(KERN_INFO "DRV_TP4: Read.\n");
 
     if(*off==0){
-        if (copy_to_user(buf, &pulsaciones, 1)) {
+        if (copy_to_user(buf, &pulsaciones, 1)){
             return -EFAULT;
         }
         else{
-            printk("Data read by user: %c\n", pulsaciones);
+            printk(KERN_INFO "DRV_TP4: leyendo: %d.\n", pulsaciones);
             (*off) ++;
             return 1;
         }
@@ -84,7 +83,7 @@ static ssize_t drv_tp4_write(struct file *filp, const char __user *buf, size_t l
 
     pulsaciones = 0;
 
-    return 0;
+    return len;
 
 }
 
