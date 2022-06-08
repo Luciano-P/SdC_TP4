@@ -62,13 +62,19 @@ static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, lof
 
     printk(KERN_INFO "DRV_TP4: Read.\n");
 
-    if(*offset==0){
-        if(copy_to_user(buf, &pulsaciones, 1)) {
-            printk(KERN_INFO "DRV_TP4: Error en copy to user.\n");
+    if(*off==0){
+        if (copy_to_user(buf, &pulsaciones, 1)) {
             return -EFAULT;
         }
+        else{
+            printk("Data read by user: %c\n", pulsaciones);
+            (*off) ++;
+            return 1;
+        }
     }
-    return 0;
+    else{
+        return 0;
+    }
 
 }
 
