@@ -134,7 +134,7 @@ static int __init drv_tp4_init(void)
     printk(KERN_INFO "%d\n", a);
     
     //Solicitamos el puerto GPIO
-    if(){
+    if(a){
         printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO %d.\n", N_BOTON);
         goto r_gpio;
     }
@@ -143,10 +143,10 @@ static int __init drv_tp4_init(void)
     //gpio_direction_input(N_BOTON);
     
     //Seteamos el tiempo de debounce del puerto
-    if(gpio_set_debounce(N_BOTON, 100) < 0){
-        printk(KERN_INFO "DRV_TP4: Fallo en el set del debounce del puerto %d.\n", N_BOTON);
-        goto r_gpio;
-    }
+    // if(gpio_set_debounce(N_BOTON, 100) < 0){
+    //     printk(KERN_INFO "DRV_TP4: Fallo en el set del debounce del puerto %d.\n", N_BOTON);
+    //     goto r_gpio;
+    // }
 
     //Obtenemos el valor de interrupcion para el puerto determinado
     GPIO_irqNumber = gpio_to_irq(botones[0].gpio);
@@ -173,7 +173,7 @@ static int __init drv_tp4_init(void)
     return 0;
  
     r_gpio:
-    gpio_free(N_BOTON);
+    gpio_free_array(botones, ARRAY_SIZE(botones));
     r_device:
     device_destroy(class_tp4,dev_tp4);
     r_class:
@@ -192,7 +192,7 @@ static void __exit drv_tp4_exit(void)
 {
         
     free_irq(GPIO_irqNumber,NULL);
-    gpio_free(N_BOTON);
+    gpio_free_array(botones, ARRAY_SIZE(botones));
     device_destroy(class_tp4,dev_tp4);
     class_destroy(class_tp4);
     cdev_del(&cdev_tp4);
