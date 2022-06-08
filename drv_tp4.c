@@ -129,9 +129,12 @@ static int __init drv_tp4_init(void)
 
     /*Pasos necesarios para reservar y configurar puertos GPIO, asi como sus interrupciones*/
   
+    int a = gpio_request_array(botones, ARRAY_SIZE(botones));
+
+    printk(KERN_INFO "%d\n", a);
     
     //Solicitamos el puerto GPIO
-    if(gpio_request_array(botones, ARRAY_SIZE(botones))){
+    if(){
         printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO %d.\n", N_BOTON);
         goto r_gpio;
     }
