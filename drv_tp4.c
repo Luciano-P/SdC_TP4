@@ -12,7 +12,9 @@
 #include <linux/gpio.h>     
 #include <linux/interrupt.h>
 
-#define N_BOTON 22
+#define BOTON_SW 22
+#define BOTON_A1 23
+#define BOTON_A2 24
 
 
 
@@ -22,22 +24,47 @@ static struct class *class_tp4;
 static struct cdev cdev_tp4;
 
 /*Variables para configuracion de GPIO e interrupciones*/
-unsigned int GPIO_irqNumber;
+unsigned int GPIO_irqNumber[3];
 
 /*Variables para lograr la funcionalidad del modulo*/
-uint8_t pulsaciones;
+int valores[3];
 
 /* Define GPIOs for BUTTONS */
 static struct gpio botones[] = {
-		{ N_BOTON, GPIOF_IN, "BUTTON 1" },
+		{ BOTON_SW, GPIOF_IN, "BOTON SWITCH" },
+        { BOTON_A1, GPIOF_IN, "BOTON ACUMULADOR1" },
+        { BOTON_A2, GPIOF_IN, "BOTON ACUMULADOR2" },
 };
 
 /*Funciones del driver y de las interrupciones*/ 
-static irqreturn_t gpio_irq_handler(int irq,void *dev_id){
+static irqreturn_t gpio_irq_handler_sw(int irq,void *dev_id){
 
-    printk(KERN_INFO "DRV_TP4: Recibi interrupcion.\n");
+    printk(KERN_INFO "DRV_TP4: Recibi interrupcion SW.\n");
 
-    pulsaciones++;
+    if(valores[0] == 0){
+        valores[0] = 1;
+    }else{
+        valores[0] = 0;
+    }
+
+    return IRQ_HANDLED;
+}
+
+static irqreturn_t gpio_irq_handler_a1(int irq,void *dev_id){
+
+    printk(KERN_INFO "DRV_TP4: Recibi interrupcion A1.\n");
+
+    valores[1]++;
+
+    return IRQ_HANDLED;
+
+}
+
+static irqreturn_t gpio_irq_handler_a2(int irq,void *dev_id){
+
+    printk(KERN_INFO "DRV_TP4: Recibi interrupcion A2.\n");
+
+    valores[2]++;
 
     return IRQ_HANDLED;
 
@@ -62,13 +89,14 @@ static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, lof
     printk(KERN_INFO "DRV_TP4: Read.\n");
 
     if(*off==0){
-        if (copy_to_user(buf, &pulsaciones, 1)){
+        if (copy_to_user(buf, &valores, sizeof(int)*3)){
+            printk(KERN_INFO "DRV_TP4: Error en ctu().\n");
             return -EFAULT;
         }
         else{
-            printk(KERN_INFO "DRV_TP4: leyendo: %d.\n", pulsaciones);
+            printk(KERN_INFO "DRV_TP4: leyendo: %d, %d, %d.\n", valores[0], valores[1], valores[2]);
             (*off) ++;
-            return 1;
+            return sizeof(int)*3;
         }
     }
     else{
@@ -81,7 +109,8 @@ static ssize_t drv_tp4_write(struct file *filp, const char __user *buf, size_t l
 
     printk(KERN_INFO "DRV_TP4: Write.\n");
 
-    pulsaciones = 0;
+    valores[1] = 0;
+    valores[2] = 0;
 
     return len;
 
@@ -138,7 +167,7 @@ static int __init drv_tp4_init(void)
     
     //Solicitamos el puerto GPIO
     if(gpio_request_array(botones, ARRAY_SIZE(botones))){
-        printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO %d.\n", N_BOTON);
+        printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO.\n");
         goto r_gpio;
     }
   
@@ -152,29 +181,58 @@ static int __init drv_tp4_init(void)
     // }
 
     //Obtenemos el valor de interrupcion para el puerto determinado
-    GPIO_irqNumber = gpio_to_irq(botones[0].gpio);
+    
+    for(int i = 0; i < 3; i++){
 
-    if(GPIO_irqNumber < 0) {
-		printk(KERN_INFO "DRV_TP4: no se pudo asociar irq %d.\n", GPIO_irqNumber);
+        GPIO_irqNumber[i] = gpio_to_irq(botones[i].gpio);
+        if(GPIO_irqNumber[i] < 0) {
+		printk(KERN_INFO "DRV_TP4: no se pudo asociar irq %d.\n", GPIO_irqNumber[i]);
 		goto r_gpio;
-	}
+	    }
+
+    }
+    
     
     //Seteamos el handler de las interrupciones
-    if (request_irq(GPIO_irqNumber,             //IRQ number
-                    gpio_irq_handler,           //IRQ handler
+    if (request_irq(GPIO_irqNumber[0],             //IRQ number
+                    gpio_irq_handler_sw,           //IRQ handler
                     IRQF_TRIGGER_RISING,        //Handler will be called in raising edge
                     "drv_tp4",                  //used to identify the device name using this IRQ
                     NULL)) {                    //device id for shared IRQ
-        printk(KERN_INFO "DRV_TP4: No se pudo setear el handler de IRQ.\n");
+        printk(KERN_INFO "DRV_TP4: No se pudo setear el handler de IRQ 0.\n");
         goto r_gpio;
     }
 
+    if (request_irq(GPIO_irqNumber[1],             //IRQ number
+                    gpio_irq_handler_a1,           //IRQ handler
+                    IRQF_TRIGGER_RISING,        //Handler will be called in raising edge
+                    "drv_tp4",                  //used to identify the device name using this IRQ
+                    NULL)) {                    //device id for shared IRQ
+        printk(KERN_INFO "DRV_TP4: No se pudo setear el handler de IRQ 1.\n");
+        goto r_irq0;
+    }
+
+    if (request_irq(GPIO_irqNumber[2],             //IRQ number
+                    gpio_irq_handler_a2,           //IRQ handler
+                    IRQF_TRIGGER_RISING,        //Handler will be called in raising edge
+                    "drv_tp4",                  //used to identify the device name using this IRQ
+                    NULL)) {                    //device id for shared IRQ
+        printk(KERN_INFO "DRV_TP4: No se pudo setear el handler de IRQ 2.\n");
+        goto r_irq1;
+    }
+
     //Iniciamos a 0 el numero de veces que se presiono el boton
-    pulsaciones = 0;
-    
+    valores[0] = 0;
+    valores[1] = 0;
+    valores[2] = 0;
+     
     printk(KERN_INFO "DRV_TP4: Modulo cargado correctamente.\n");
     return 0;
- 
+    
+    r_irq1:
+    free_irq(GPIO_irqNumber[1],NULL);
+    r_irq0:
+    free_irq(GPIO_irqNumber[0],NULL);
     r_gpio:
     gpio_free_array(botones, ARRAY_SIZE(botones));
     r_device:
@@ -194,7 +252,9 @@ static int __init drv_tp4_init(void)
 static void __exit drv_tp4_exit(void)
 {
         
-    free_irq(GPIO_irqNumber,NULL);
+    free_irq(GPIO_irqNumber[2],NULL);
+    free_irq(GPIO_irqNumber[1],NULL);
+    free_irq(GPIO_irqNumber[0],NULL);
     gpio_free_array(botones, ARRAY_SIZE(botones));
     device_destroy(class_tp4,dev_tp4);
     class_destroy(class_tp4);
