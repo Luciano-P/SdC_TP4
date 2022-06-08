@@ -19,9 +19,7 @@ static irqreturn_t gpio_irq_handler(int irq,void *dev_id);
 static int drv_tp4_open(struct inode *inode, struct file *file);
 static int drv_tp4_release(struct inode *inode, struct file *file);
 static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, loff_t * off);
-static ssize_t drv_tp4_write(struct file *filp, char __user *buf, size_t len, loff_t * off);
-
-
+static ssize_t drv_tp4_write(struct file *filp, const char __user *buf, size_t len, loff_t * off);
 
 /*Estructuras para el montado del modulo*/
 dev_t dev_tp4;
@@ -118,7 +116,7 @@ static int __init drv_tp4_init(void)
     //Iniciamos a 0 el numero de veces que se presiono el boton
     pulsaciones = 0;
     
-    printk(KERN_INFO "DRV_TP4: Modulo cargado correctamente.\n")
+    printk(KERN_INFO "DRV_TP4: Modulo cargado correctamente.\n");
     return 0;
  
     r_gpio:
@@ -131,7 +129,7 @@ static int __init drv_tp4_init(void)
     cdev_del(&cdev_tp4);
     r_unreg:
     unregister_chrdev_region(dev_tp4,1);
-    printk(KERN_INFO "DRV_TP4: Fallo al cargar el modulo.\n")
+    printk(KERN_INFO "DRV_TP4: Fallo al cargar el modulo.\n");
     
     return -1;
 }
@@ -149,17 +147,6 @@ static void __exit drv_tp4_exit(void)
     pr_info("DRV_TP4: Modulo quitado correctamente.\n");
 
 }
-
-
-module_init(drv_tp4_init);
-module_exit(drv_tp4_exit);
- 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("ASMKiller");
-MODULE_DESCRIPTION("Modulo resolucion del TP4 de SdC");
-MODULE_VERSION("1");
-
-
 
 
 static irqreturn_t gpio_irq_handler(int irq,void *dev_id){
@@ -199,7 +186,7 @@ static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, lof
 
 }
 
-static ssize_t drv_tp4_write(struct file *filp, char __user *buf, size_t len, loff_t * off){
+static ssize_t drv_tp4_write(struct file *filp, const char __user *buf, size_t len, loff_t * off){
 
     printk(KERN_INFO "DRV_TP4: Write.\n");
 
@@ -208,3 +195,11 @@ static ssize_t drv_tp4_write(struct file *filp, char __user *buf, size_t len, lo
     return 0;
 
 }
+
+module_init(drv_tp4_init);
+module_exit(drv_tp4_exit);
+ 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("ASMKiller");
+MODULE_DESCRIPTION("Modulo resolucion del TP4 de SdC");
+MODULE_VERSION("1");
