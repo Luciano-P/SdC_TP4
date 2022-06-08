@@ -84,7 +84,7 @@ static int drv_tp4_release(struct inode *inode, struct file *file){
 
 }
 
-static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, loff_t * off){
+static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, loff_t *off){
 
     printk(KERN_INFO "DRV_TP4: Read.\n");
 
@@ -100,7 +100,14 @@ static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, lof
         }
     }
     else{
-        return 0;
+        if (copy_to_user(buf, &valores, sizeof(int)*3)){
+            printk(KERN_INFO "DRV_TP4: Error en ctu().\n");
+            return -EFAULT;
+        }
+        else{
+            printk(KERN_INFO "DRV_TP4: leyendo: %d, %d, %d.\n", valores[0], valores[1], valores[2]);
+            return sizeof(int)*3;
+        }
     }
 
 }

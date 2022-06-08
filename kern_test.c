@@ -32,7 +32,7 @@ int main(void){
             }else if(strcmp(comando, "r") == 0){
                 read(fd, buffer, sizeof(int)*3);
                 printf("R %d %d %d.\n", buffer[0], buffer[1], buffer[2]);
-            }else if(strcmp(comando, "Fin")){
+            }else if(strcmp(comando, "Fin") == 0){
                 break;
             }else{
                 printf("Error en el comando.\n");   
@@ -43,7 +43,7 @@ int main(void){
     }
 
     close(fd);
-    
+
     return 0;
 
 }
