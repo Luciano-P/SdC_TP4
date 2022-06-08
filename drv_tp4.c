@@ -21,16 +21,6 @@ dev_t dev_tp4;
 static struct class *class_tp4;
 static struct cdev cdev_tp4;
 
-/*Estructura que indica a que funciones apuntaran los llamados al driver*/
-static struct file_operations fops =
-{
-    .owner          = THIS_MODULE,
-    .read           = drv_tp4_read,
-    .write          = drv_tp4_write,
-    .open           = drv_tp4_open,
-    .release        = drv_tp4_release,
-};
-
 /*Variables para configuracion de GPIO e interrupciones*/
 unsigned int GPIO_irqNumber;
 
@@ -88,6 +78,16 @@ static ssize_t drv_tp4_write(struct file *filp, const char __user *buf, size_t l
     return 0;
 
 }
+
+/*Estructura que indica a que funciones apuntaran los llamados al driver*/
+static struct file_operations fops =
+{
+    .owner          = THIS_MODULE,
+    .read           = drv_tp4_read,
+    .write          = drv_tp4_write,
+    .open           = drv_tp4_open,
+    .release        = drv_tp4_release,
+};
 
 /*Funcion de cargado del modulo, llamada cuando se utiliza el insmod*/
 static int __init drv_tp4_init(void)
