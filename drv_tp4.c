@@ -12,7 +12,7 @@
 #include <linux/gpio.h>     
 #include <linux/interrupt.h>
 
-#define GPIO_IN 20
+#define N_BOTON 22
 
 
 
@@ -29,7 +29,7 @@ uint8_t pulsaciones;
 
 /* Define GPIOs for BUTTONS */
 static struct gpio botones[] = {
-		{ 22, GPIOF_IN, "BUTTON 1" },
+		{ N_BOTON, GPIOF_IN, "BUTTON 1" },
 };
 
 /*Funciones del driver y de las interrupciones*/ 
@@ -131,16 +131,16 @@ static int __init drv_tp4_init(void)
     
     //Solicitamos el puerto GPIO
     if(gpio_request_array(botones, ARRAY_SIZE(botones)) != 0){
-        printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO %d.\n", GPIO_IN);
+        printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO %d.\n", N_BOTON);
         goto r_gpio;
     }
   
     //Configuramos el puerto GPIO como entrada, algunos frameworks de gpio.h lo piden explicitamente por mas que se indique en la funcion anterior
-    //gpio_direction_input(GPIO_IN);
+    //gpio_direction_input(N_BOTON);
     
     //Seteamos el tiempo de debounce del puerto
-    if(gpio_set_debounce(GPIO_IN, 100) < 0){
-        printk(KERN_INFO "DRV_TP4: Fallo en el set del debounce del puerto %d.\n", GPIO_IN);
+    if(gpio_set_debounce(N_BOTON, 100) < 0){
+        printk(KERN_INFO "DRV_TP4: Fallo en el set del debounce del puerto %d.\n", N_BOTON);
         goto r_gpio;
     }
 
@@ -169,7 +169,7 @@ static int __init drv_tp4_init(void)
     return 0;
  
     r_gpio:
-    gpio_free(GPIO_IN);
+    gpio_free(N_BOTON);
     r_device:
     device_destroy(class_tp4,dev_tp4);
     r_class:
@@ -188,7 +188,7 @@ static void __exit drv_tp4_exit(void)
 {
         
     free_irq(GPIO_irqNumber,NULL);
-    gpio_free(GPIO_IN);
+    gpio_free(N_BOTON);
     device_destroy(class_tp4,dev_tp4);
     class_destroy(class_tp4);
     cdev_del(&cdev_tp4);
