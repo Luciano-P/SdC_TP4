@@ -95,7 +95,7 @@ static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, lof
         }
         else{
             printk(KERN_INFO "DRV_TP4: leyendo: %d, %d, %d.\n", valores[0], valores[1], valores[2]);
-            (*off) ++;
+            (*off) += sizeof(int)*3;
             return sizeof(int)*3;
         }
     }
