@@ -12,6 +12,8 @@
 #include <linux/gpio.h>     
 #include <linux/interrupt.h>
 
+#define GPIO_IN 20
+
 /*Funciones del driver y de las interrupciones*/ 
 static irqreturn_t gpio_irq_handler(int irq,void *dev_id);
 static int drv_tp4_open(struct inode *inode, struct file *file);
@@ -57,7 +59,7 @@ static int __init drv_tp4_init(void)
     printk(KERN_INFO "Major = %d Minor = %d.\n",MAJOR(dev_tp4), MINOR(dev_tp4));
  
     //Iniciamos la estructura cdev con las operaciones
-    cdev_init(&etx_cdev,&fops);
+    cdev_init(&cdev_tp4,&fops);
  
     //Agregamos el CD al sistema, asociado al Major obtenido
     if((cdev_add(&cdev_tp4,dev_tp4,1)) < 0){
@@ -80,28 +82,28 @@ static int __init drv_tp4_init(void)
     /*Pasos necesarios para reservar y configurar puertos GPIO, asi como sus interrupciones*/
   
     //Chequeamos que el puerto gpio este disponible
-    if(gpio_is_valid(GPIO_20) == false){
-        printk(KERN_INFO "DRV_TP4: GPIO %d no valido.\n", GPIO_20);
+    if(gpio_is_valid(GPIO_IN) == false){
+        printk(KERN_INFO "DRV_TP4: GPIO %d no valido.\n", GPIO_IN);
         goto r_device;
     }
     
     //Solicitamos el puerto GPIO
-    if(gpio_request(GPIO_20, GPIOF_IN) < 0){
-        printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO %d.\n", GPIO_20);
+    if(gpio_request(GPIO_IN, GPIOF_IN) < 0){
+        printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO %d.\n", GPIO_IN);
         goto r_gpio;
     }
   
     //Configuramos el puerto GPIO como entrada, algunos frameworks de gpio.h lo piden explicitamente por mas que se indique en la funcion anterior
-    //gpio_direction_input(GPIO_20);
+    //gpio_direction_input(GPIO_IN);
     
     //Seteamos el tiempo de debounce del puerto
-    if(gpio_set_debounce(GPIO_20, 100) < 0){
-        printk(KERN_INFO "DRV_TP4: Fallo en el set del debounce del puerto %d.\n", GPIO_20);
+    if(gpio_set_debounce(GPIO_IN, 100) < 0){
+        printk(KERN_INFO "DRV_TP4: Fallo en el set del debounce del puerto %d.\n", GPIO_IN);
         goto r_gpio;
     }
 
     //Obtenemos el valor de interrupcion para el puerto determinado
-    GPIO_irqNumber = gpio_to_irq(GPIO_20);
+    GPIO_irqNumber = gpio_to_irq(GPIO_IN);
     
     //Seteamos el handler de las interrupciones
     if (request_irq(GPIO_irqNumber,             //IRQ number
@@ -120,7 +122,7 @@ static int __init drv_tp4_init(void)
     return 0;
  
     r_gpio:
-    gpio_free(GPIO_20);
+    gpio_free(GPIO_IN);
     r_device:
     device_destroy(class_tp4,dev_tp4);
     r_class:
@@ -139,7 +141,7 @@ static void __exit drv_tp4_exit(void)
 {
         
     free_irq(GPIO_irqNumber,NULL);
-    gpio_free(GPIO_20);
+    gpio_free(GPIO_IN);
     device_destroy(class_tp4,dev_tp4);
     class_destroy(class_tp4);
     cdev_del(&cdev_tp4);
