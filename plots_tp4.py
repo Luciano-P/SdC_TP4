@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import time
 
-def update(arr,x) # Actualizacion del array, elimino valor antiguo, ingreso x
+def update(arr,x): # Actualizacion del array, elimino valor antiguo, ingreso x
     del arr[0]
     arr.append(x)
 
