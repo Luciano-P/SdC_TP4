@@ -30,6 +30,7 @@ uint8_t pulsaciones;
 /* Define GPIOs for BUTTONS */
 static struct gpio botones[] = {
 		{ N_BOTON, GPIOF_IN, "BUTTON 1" },
+        { N_BOTON+1, GPIOF_IN, "BUTTON 2" },
 };
 
 /*Funciones del driver y de las interrupciones*/ 
