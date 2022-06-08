@@ -182,15 +182,27 @@ static int __init drv_tp4_init(void)
 
     //Obtenemos el valor de interrupcion para el puerto determinado
     
-    for(int i = 0; i < 3; i++){
+    
 
-        GPIO_irqNumber[i] = gpio_to_irq(botones[i].gpio);
-        if(GPIO_irqNumber[i] < 0) {
-		printk(KERN_INFO "DRV_TP4: no se pudo asociar irq %d.\n", GPIO_irqNumber[i]);
-		goto r_gpio;
-	    }
+    GPIO_irqNumber[0] = gpio_to_irq(botones[0].gpio);
+    if(GPIO_irqNumber[0] < 0) {
+	printk(KERN_INFO "DRV_TP4: no se pudo asociar irq %d.\n", GPIO_irqNumber[0]);
+	goto r_gpio;
+	}
 
-    }
+    GPIO_irqNumber[1] = gpio_to_irq(botones[1].gpio);
+    if(GPIO_irqNumber[1] < 0) {
+	printk(KERN_INFO "DRV_TP4: no se pudo asociar irq %d.\n", GPIO_irqNumber[1]);
+	goto r_gpio;
+	}
+
+    GPIO_irqNumber[2] = gpio_to_irq(botones[2].gpio);
+    if(GPIO_irqNumber[2] < 0) {
+	printk(KERN_INFO "DRV_TP4: no se pudo asociar irq %d.\n", GPIO_irqNumber[2]);
+	goto r_gpio;
+	}
+
+    
     
     
     //Seteamos el handler de las interrupciones
