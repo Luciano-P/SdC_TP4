@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -8,9 +7,7 @@
 
 
 int main(void){
-
     int i = 0;
-
     int fdev, flog;
     char cadena[100];
     int buffer[3];
@@ -19,13 +16,11 @@ int main(void){
     flog = open("log.csv", O_RDWR | O_CREAT);
 
     if(fdev < 0 || flog < 0){
-
 		printf("No se pudo hacer el open.\n");
 
-	}else{
-
+	}
+    else{
         while(i < 10){
-
             read(fdev, buffer, sizeof(int)*3);
             write(fdev, "a", 1);
 
@@ -34,14 +29,10 @@ int main(void){
 
             sleep(1);
             i++;
-
         }
-
     }
-
     close(fdev);
     close(flog);
 
     return 0;
-
 }
