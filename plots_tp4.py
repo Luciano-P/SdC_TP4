@@ -1,50 +1,58 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import time
 
-def update(arr,x): # Actualizacion del array, elimino valor antiguo, ingreso x
+import time
+import numpy
+import matplotlib.pyplot as plt
+
+
+def get_v():
+
+    f = open("/dev/drv_tp4", "r", encoding = 'raw_unicode_escape')
+
+    lista = f.readline(12)
+
+    switch = ord(lista[0])
+    grapha = ord(lista[4]) + (ord(lista[5]) * 256) + (ord(lista[6]) * 65536) + (ord(lista[7]) * 16777216)
+    graphb = ord(lista[8]) + (ord(lista[9]) * 256) + (ord(lista[10]) * 65536) + (ord(lista[11]) * 16777216)
+
+    valores = [switch, grapha, graphb]
+
+    return valores
+
+
+def update(arr,x): #Actualizacion del array, elimino valor antiguo, ingreso x
     del arr[0]
     arr.append(x)
 
-f = open("/dev/drv_tp4","r+")
-r_values = []   # Valores leidos de /dev/drv_tp4
-pulse0 = []     # Pulsadores
-pulse1 = []
-switch = 1      # Switch de grafico
-pulses = []     # Pulsos a graficar
 
-while True:
-    # Leo el .csv
-    data = pd.read_csv('log.csv')
-    r_values = data.to_numpy(dtype = int)
-
-    switch = r_values[-1,0] # Ultimo elemento de columna 0
-    pulse0 = r_values[:,1]  # Valores columna 1
-    pulse1 = r_values[:,2]  # Valores columna 2
-    
-    # Actualizo los valores
-    #update(pulse0, r_values[0])
-    #update(pulse1, r_values[1])
-    #switch = r_values[2]
-
-    # Eleccion de que pulsador graficar
-    if switch == 0:
-        pulses = pulse0
-        title = "Pulsador 1"
-    else:
-        pulses = pulse1
-        title = "Pulsador 2"
-
-    # Ploteo
-    plt.xlim(0,50)
-    plt.ylim(0,20)
+def graficar(pulses, title):
+    plt.xlim(0,10)
     plt.title(title)
     plt.xlabel("Tiempo")
     plt.ylabel("Pulsaciones")
     plt.bar(list(range(10)) ,pulses)
-    plt.style.use('fivethirtyeight')
+    
     plt.show()
 
-    # Sleep de 5 segundos entre graficos
-    time.sleep(5)
+
+
+pulsador0 = [0,0,0,0,0,0,0,0,0,0]
+pulsador1 = [0,0,0,0,0,0,0,0,0,0]
+
+
+while True:
+
+    valores = get_v()
+
+    update(pulsador0, valores[1])
+    update(pulsador1, valores[2])
+
+    print(pulsador0)
+    print(pulsador1)    
+
+    if valores[0] == 0:
+        graficar(pulsador0, "pulsador0")
+    else:
+        graficar(pulsador1, "pulsador1")
+
+
+    time.sleep(2)
