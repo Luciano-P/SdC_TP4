@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 def get_v():
 
-    f = open("/dev/drv_tp4", "r+", encoding = 'raw_unicode_escape')
+    f = open("/dev/drv_tp4", "r+w", encoding = 'raw_unicode_escape')
 
     lista = f.readline(12)
     f.write("a")
