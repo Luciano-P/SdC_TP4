@@ -6,10 +6,13 @@ import matplotlib.pyplot as plt
 
 def get_v():
 
-    f = open("/dev/drv_tp4", "r+w", encoding = 'raw_unicode_escape')
-
+    f = open("/dev/drv_tp4", "r", encoding = 'raw_unicode_escape')
     lista = f.readline(12)
-    f.write("a")
+    f.close()
+
+    g = open("/dev/drv_tp4", "w",)
+    g.write("a")
+    g.close()
 
     switch = ord(lista[0])
     grapha = ord(lista[4]) + (ord(lista[5]) * 256) + (ord(lista[6]) * 65536) + (ord(lista[7]) * 16777216)
