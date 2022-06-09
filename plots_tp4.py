@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 import time
 
 def update(arr,x): # Actualizacion del array, elimino valor antiguo, ingreso x
@@ -13,14 +15,18 @@ switch = 1      # Switch de grafico
 pulses = []     # Pulsos a graficar
 
 while True:
-    # Read para leer el valor, write para ponerlo a 0
-    r_values = f.read(3)
-    f.write("000")
+    # Leo el .csv
+    data = pd.read_csv('log.csv')
+    r_values = data.to_numpy(dtype = int)
 
+    switch = r_values[-1,0] # Ultimo elemento de columna 0
+    pulse0 = r_values[:,1]  # Valores columna 1
+    pulse1 = r_values[:,2]  # Valores columna 2
+    
     # Actualizo los valores
-    update(pulse0, r_values[0])
-    update(pulse1, r_values[1])
-    switch = r_values[2]
+    #update(pulse0, r_values[0])
+    #update(pulse1, r_values[1])
+    #switch = r_values[2]
 
     # Eleccion de que pulsador graficar
     if switch == 0:
@@ -42,5 +48,3 @@ while True:
 
     # Sleep de 5 segundos entre graficos
     time.sleep(5)
-
-f.close()
