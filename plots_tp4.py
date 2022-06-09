@@ -45,12 +45,15 @@ while True:
     update(pulsador0, valores[1])
     update(pulsador1, valores[2])
 
-    print(pulsador0)
-    print(pulsador1)    
-
     if valores[0] == 0:
         graficar(pulsador0, "pulsador0")
+        print("El switch vale: %d.", valores[0])
+        print("El pulsador 0 tiene el siguiente valor:")
+        print(pulsador0)
     else:
         graficar(pulsador1, "pulsador1")
+        print("El switch vale: %d.", valores[0])
+        print("El pulsador 1 tiene el siguiente valor:")
+        print(pulsador1)
 
     time.sleep(2)
