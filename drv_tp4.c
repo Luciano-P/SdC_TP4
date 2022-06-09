@@ -10,19 +10,104 @@
 #include <linux/gpio.h>     
 #include <linux/interrupt.h>
 
-#define GPIO_IN 20
+#define BOTON_SW 22
+#define BOTON_A1 23
+#define BOTON_A2 24
 
-/*Funciones del driver y de las interrupciones*/ 
-static irqreturn_t gpio_irq_handler(int irq,void *dev_id);
-static int drv_tp4_open(struct inode *inode, struct file *file);
-static int drv_tp4_release(struct inode *inode, struct file *file);
-static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, loff_t * off);
-static ssize_t drv_tp4_write(struct file *filp, const char __user *buf, size_t len, loff_t * off);
+
 
 /*Estructuras para el montado del modulo*/
 dev_t dev_tp4;
 static struct class *class_tp4;
 static struct cdev cdev_tp4;
+
+/*Variables para configuracion de GPIO e interrupciones*/
+unsigned int GPIO_irqNumber[3];
+
+/*Variables para lograr la funcionalidad del modulo*/
+int valores[3];
+
+/* Define GPIOs for BUTTONS */
+static struct gpio botones[] = {
+		{ BOTON_SW, GPIOF_IN, "BOTON SWITCH" },
+        { BOTON_A1, GPIOF_IN, "BOTON ACUMULADOR1" },
+        { BOTON_A2, GPIOF_IN, "BOTON ACUMULADOR2" },
+};
+
+/*Funciones del driver y de las interrupciones*/ 
+static irqreturn_t gpio_irq_handler_sw(int irq,void *dev_id){
+
+    printk(KERN_INFO "DRV_TP4: Recibi interrupcion SW.\n");
+
+    if(valores[0] == 0){
+        valores[0] = 1;
+    }else{
+        valores[0] = 0;
+    }
+
+    return IRQ_HANDLED;
+}
+
+static irqreturn_t gpio_irq_handler_a1(int irq,void *dev_id){
+
+    printk(KERN_INFO "DRV_TP4: Recibi interrupcion A1.\n");
+
+    valores[1]++;
+
+    return IRQ_HANDLED;
+
+}
+
+static irqreturn_t gpio_irq_handler_a2(int irq,void *dev_id){
+
+    printk(KERN_INFO "DRV_TP4: Recibi interrupcion A2.\n");
+
+    valores[2]++;
+
+    return IRQ_HANDLED;
+
+}
+
+static int drv_tp4_open(struct inode *inode, struct file *file){
+
+    printk(KERN_INFO "DRV_TP4: Open.\n");
+    return 0;
+
+}
+
+static int drv_tp4_release(struct inode *inode, struct file *file){
+
+    printk(KERN_INFO "DRV_TP4: Close.\n");
+    return 0;
+
+}
+
+static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, loff_t *off){
+
+    printk(KERN_INFO "DRV_TP4: Read.\n");
+
+    
+    if (copy_to_user(buf, &valores, sizeof(int)*3)){
+        printk(KERN_INFO "DRV_TP4: Error en ctu().\n");
+        return -EFAULT;
+    }
+    else{
+        printk(KERN_INFO "DRV_TP4: leyendo: %d, %d, %d.\n", valores[0], valores[1], valores[2]);
+        return sizeof(int)*3;
+    }
+   
+}
+
+static ssize_t drv_tp4_write(struct file *filp, const char __user *buf, size_t len, loff_t * off){
+
+    printk(KERN_INFO "DRV_TP4: Write.\n");
+
+    valores[1] = 0;
+    valores[2] = 0;
+
+    return len;
+
+}
 
 /*Estructura que indica a que funciones apuntaran los llamados al driver*/
 static struct file_operations fops =
@@ -34,17 +119,13 @@ static struct file_operations fops =
     .release        = drv_tp4_release,
 };
 
-/*Variables para configuracion de GPIO e interrupciones*/
-unsigned int GPIO_irqNumber;
-
-/*Variables para lograr la funcionalidad del modulo*/
-unsigned int pulsaciones;
-
 /*Funcion de cargado del modulo, llamada cuando se utiliza el insmod*/
 static int __init drv_tp4_init(void)
 {
 
     /*Pasos necesarios para crear y registrar el CD en el sistema*/
+
+    printk(KERN_INFO "DRV_TP4: Module Init.\n");
 
     //Alocamos un rango de numeros de CD (Major, Minor) 
     if((alloc_chrdev_region(&dev_tp4, 0, 1, "drv_tp4")) <0){
@@ -76,49 +157,89 @@ static int __init drv_tp4_init(void)
     }
 
     /*Pasos necesarios para reservar y configurar puertos GPIO, asi como sus interrupciones*/
-  
-    //Chequeamos que el puerto gpio este disponible
-    if(gpio_is_valid(GPIO_IN) == false){
-        printk(KERN_INFO "DRV_TP4: GPIO %d no valido.\n", GPIO_IN);
-        goto r_device;
-    }
     
     //Solicitamos el puerto GPIO
-    if(gpio_request(GPIO_IN, GPIOF_IN) < 0){
-        printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO %d.\n", GPIO_IN);
+    if(gpio_request_array(botones, ARRAY_SIZE(botones))){
+        printk(KERN_INFO "DRV_TP4: Fallo en la solicitud de GPIO.\n");
         goto r_gpio;
     }
   
     //Configuramos el puerto GPIO como entrada, algunos frameworks de gpio.h lo piden explicitamente por mas que se indique en la funcion anterior
-    //gpio_direction_input(GPIO_IN);
+    //gpio_direction_input(N_BOTON);
     
     //Seteamos el tiempo de debounce del puerto
-    if(gpio_set_debounce(GPIO_IN, 100) < 0){
-        printk(KERN_INFO "DRV_TP4: Fallo en el set del debounce del puerto %d.\n", GPIO_IN);
-        goto r_gpio;
-    }
+    // if(gpio_set_debounce(N_BOTON, 100) < 0){
+    //     printk(KERN_INFO "DRV_TP4: Fallo en el set del debounce del puerto %d.\n", N_BOTON);
+    //     goto r_gpio;
+    // }
 
     //Obtenemos el valor de interrupcion para el puerto determinado
-    GPIO_irqNumber = gpio_to_irq(GPIO_IN);
+    
+    
+
+    GPIO_irqNumber[0] = gpio_to_irq(botones[0].gpio);
+    if(GPIO_irqNumber[0] < 0) {
+	printk(KERN_INFO "DRV_TP4: no se pudo asociar irq %d.\n", GPIO_irqNumber[0]);
+	goto r_gpio;
+	}
+
+    GPIO_irqNumber[1] = gpio_to_irq(botones[1].gpio);
+    if(GPIO_irqNumber[1] < 0) {
+	printk(KERN_INFO "DRV_TP4: no se pudo asociar irq %d.\n", GPIO_irqNumber[1]);
+	goto r_gpio;
+	}
+
+    GPIO_irqNumber[2] = gpio_to_irq(botones[2].gpio);
+    if(GPIO_irqNumber[2] < 0) {
+	printk(KERN_INFO "DRV_TP4: no se pudo asociar irq %d.\n", GPIO_irqNumber[2]);
+	goto r_gpio;
+	}
+
+    
+    
     
     //Seteamos el handler de las interrupciones
-    if (request_irq(GPIO_irqNumber,             //IRQ number
-                    (void *)gpio_irq_handler,   //IRQ handler
+    if (request_irq(GPIO_irqNumber[0],             //IRQ number
+                    gpio_irq_handler_sw,           //IRQ handler
                     IRQF_TRIGGER_RISING,        //Handler will be called in raising edge
                     "drv_tp4",                  //used to identify the device name using this IRQ
                     NULL)) {                    //device id for shared IRQ
-        printk(KERN_INFO "DRV_TP4: No se pudo setear el handler de IRQ.\n");
+        printk(KERN_INFO "DRV_TP4: No se pudo setear el handler de IRQ 0.\n");
         goto r_gpio;
     }
 
+    if (request_irq(GPIO_irqNumber[1],             //IRQ number
+                    gpio_irq_handler_a1,           //IRQ handler
+                    IRQF_TRIGGER_RISING,        //Handler will be called in raising edge
+                    "drv_tp4",                  //used to identify the device name using this IRQ
+                    NULL)) {                    //device id for shared IRQ
+        printk(KERN_INFO "DRV_TP4: No se pudo setear el handler de IRQ 1.\n");
+        goto r_irq0;
+    }
+
+    if (request_irq(GPIO_irqNumber[2],             //IRQ number
+                    gpio_irq_handler_a2,           //IRQ handler
+                    IRQF_TRIGGER_RISING,        //Handler will be called in raising edge
+                    "drv_tp4",                  //used to identify the device name using this IRQ
+                    NULL)) {                    //device id for shared IRQ
+        printk(KERN_INFO "DRV_TP4: No se pudo setear el handler de IRQ 2.\n");
+        goto r_irq1;
+    }
+
     //Iniciamos a 0 el numero de veces que se presiono el boton
-    pulsaciones = 0;
-    
+    valores[0] = 0;
+    valores[1] = 0;
+    valores[2] = 0;
+     
     printk(KERN_INFO "DRV_TP4: Modulo cargado correctamente.\n");
     return 0;
- 
+    
+    r_irq1:
+    free_irq(GPIO_irqNumber[1],NULL);
+    r_irq0:
+    free_irq(GPIO_irqNumber[0],NULL);
     r_gpio:
-    gpio_free(GPIO_IN);
+    gpio_free_array(botones, ARRAY_SIZE(botones));
     r_device:
     device_destroy(class_tp4,dev_tp4);
     r_class:
@@ -136,8 +257,10 @@ static int __init drv_tp4_init(void)
 static void __exit drv_tp4_exit(void)
 {
         
-    free_irq(GPIO_irqNumber,NULL);
-    gpio_free(GPIO_IN);
+    free_irq(GPIO_irqNumber[2],NULL);
+    free_irq(GPIO_irqNumber[1],NULL);
+    free_irq(GPIO_irqNumber[0],NULL);
+    gpio_free_array(botones, ARRAY_SIZE(botones));
     device_destroy(class_tp4,dev_tp4);
     class_destroy(class_tp4);
     cdev_del(&cdev_tp4);
@@ -146,53 +269,6 @@ static void __exit drv_tp4_exit(void)
 
 }
 
-
-static irqreturn_t gpio_irq_handler(int irq,void *dev_id){
-
-    printk(KERN_INFO "DRV_TP4: Recibi interrupcion.\n");
-
-    pulsaciones++;
-
-    return IRQ_HANDLED;
-
-}
-
-
-static int drv_tp4_open(struct inode *inode, struct file *file){
-
-    printk(KERN_INFO "DRV_TP4: Open.\n");
-    return 0;
-
-}
-
-static int drv_tp4_release(struct inode *inode, struct file *file){
-
-    printk(KERN_INFO "DRV_TP4: Close.\n");
-    return 0;
-
-}
-
-static ssize_t drv_tp4_read(struct file *filp, char __user *buf, size_t len, loff_t * off){
-
-    printk(KERN_INFO "DRV_TP4: Read.\n");
-
-    if(copy_to_user(buf, &pulsaciones, len) > 0) {
-        printk(KERN_INFO "DRV_TP4: Error en copy to user.\n");
-    }
-
-    return 0;
-
-}
-
-static ssize_t drv_tp4_write(struct file *filp, const char __user *buf, size_t len, loff_t * off){
-
-    printk(KERN_INFO "DRV_TP4: Write.\n");
-
-    pulsaciones = 0;
-
-    return 0;
-
-}
 
 module_init(drv_tp4_init);
 module_exit(drv_tp4_exit);

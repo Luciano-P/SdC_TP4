@@ -1,6 +1,6 @@
 
 Puertos:
 
-20,21: ingreso de señal.
+22: switch de grafico.
 
-23: switch de grafico.
+23, 24: ingreso de señales.
